@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planner</title>
+<meta name="description" content="Planner: planificá tus proyectos en bloques y pasos, rápido y con el teclado.">
+<meta name="theme-color" content="#1c1c1a">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">Planner</div>
+    <button class="add-plan" data-act="newplan">+ Nueva planificación</button>
+    <div id="plans"></div>
+    <button class="io-btn" data-act="io-open">⇅ Exportar / Importar</button>
+    <div class="hints">
+      <div><kbd>Enter</kbd> agrega paso / bloque</div>
+      <div><kbd>↑</kbd> <kbd>↓</kbd> navegar pasos</div>
+      <div><kbd>Alt</kbd>+<kbd>N</kbd> nueva planificación</div>
+      <div><kbd>Alt</kbd>+<kbd>B</kbd> nuevo bloque</div>
+      <div><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> cambiar planificación</div>
+      <div><kbd>Esc</kbd> salir del campo</div>
+    </div>
+  </aside>
+  <main><div class="wrap" id="main"></div></main>
+  <div id="io" hidden>
+    <div class="bk" data-act="io-close"></div>
+    <div class="modal">
+      <h3>Exportar / Importar</h3>
+      <div class="seg"><button data-act="io-mode" data-m="json">JSON (todo)</button><button data-act="io-mode" data-m="md">Markdown (actual)</button><button data-act="io-mode" data-m="import">Importar</button></div>
+      <textarea id="iotext" spellcheck="false"></textarea>
+      <div class="act"><span id="iomsg"></span>
+        <input type="file" id="iofile" accept=".json,.md,.txt" hidden>
+        <button data-act="io-pick" id="iopick">Elegir archivo</button>
+        <button data-act="io-do" class="pri" id="iodo">Importar</button>
+        <button data-act="io-copy" id="iocopy">Copiar</button>
+        <button data-act="io-dl" class="pri" id="iodl">Descargar</button>
+        <button data-act="io-close">Cerrar</button></div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
