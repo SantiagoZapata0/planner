@@ -18,16 +18,20 @@
 <body>
 <div class="app">
   <aside>
-    <div class="brand">Planner</div>
+    <div class="brand" data-act="home" title="Volver a la planificación">Planner</div>
     <button class="add-plan" data-act="newplan">+ Nueva planificación</button>
+    <input id="search" class="search" placeholder="Buscar en todo…" spellcheck="false" autocomplete="off">
+    <button class="pending-btn" data-act="pending">✓ Qué me queda pendiente</button>
     <div id="plans"></div>
     <button class="io-btn" data-act="io-open">⇅ Exportar / Importar</button>
     <div class="hints">
       <div><kbd>Enter</kbd> agrega paso / bloque</div>
       <div><kbd>↑</kbd> <kbd>↓</kbd> navegar pasos</div>
+      <div><kbd>Alt</kbd>+<kbd>F</kbd> buscar</div>
       <div><kbd>Alt</kbd>+<kbd>N</kbd> nueva planificación</div>
       <div><kbd>Alt</kbd>+<kbd>B</kbd> nuevo bloque</div>
       <div><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> cambiar planificación</div>
+      <div><kbd>Enter</kbd> guarda nota · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> en código</div>
       <div><kbd>Esc</kbd> salir del campo</div>
     </div>
   </aside>
