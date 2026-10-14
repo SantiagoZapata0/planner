@@ -128,7 +128,7 @@ function renderMain() {
                   </div>
                 </div>`
               : b.note
-                ? `<div class="noterender" data-act="note-edit" title="Editar nota">${renderNote(b.note)}</div>`
+                ? `<div class="noterender" data-act="note-edit" title="Editar nota">${renderNote(b.notes, b.note)}</div>`
                 : `<button class="note-add" data-act="note-edit">＋ Añadir nota</button>`}
           </div>` : ''}
         </div>` : ''}
@@ -167,9 +167,9 @@ function notesToString(notes) {
     ? '```' + (seg.lang || '') + '\n' + seg.text + '\n```'
     : seg.text).filter(x => x && String(x).trim()).join('\n\n');
 }
-function renderNote(text) {
-  const segs = stringToNotes(text);
-  if (!segs.length) return text ? `<div class="notetext">${esc(text)}</div>` : '';
+function renderNote(notes, fallbackText = '') {
+  const segs = Array.isArray(notes) ? notes : stringToNotes(notes);
+  if (!segs.length) return fallbackText ? `<div class="notetext">${esc(fallbackText)}</div>` : '';
   return segs.map(seg => seg.t === 'code'
     ? `<pre class="code">${seg.lang ? `<span class="lang">${esc(seg.lang)}</span>` : ''}<code>${esc(seg.text)}</code></pre>`
     : `<div class="notetext">${esc(seg.text)}</div>`).join('');
