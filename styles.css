@@ -104,10 +104,9 @@ aside {
 }
 
 .brand {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: .02em;
-    padding: 0 8px 16px
+    font-weight: 900;
+    font-size: 28px;
+    padding: 0 10px 22px
 }
 
 .add-plan {
@@ -675,7 +674,7 @@ main {
 
 /* ---------- Nota libre del bloque ---------- */
 .note {
-    margin-top: 10px
+    margin-top: 10px;
 }
 
 .noteedit {
@@ -843,7 +842,10 @@ main {
 .notetext {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    margin: 6px 0
+    margin: 6px 0;
+    background-color: #1b1b19;
+    padding: 1rem;
+    border-radius: 0.5rem;
 }
 
 .notetext:first-child {

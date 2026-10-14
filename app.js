@@ -79,6 +79,7 @@ function renderMain() {
   m.innerHTML = `
     <div class="top"><input id="ptitle" value="${esc(p.title)}" placeholder="Título de la planificación" spellcheck="false"><span class="count">${done}/${all.length} pasos</span></div>
     ${p.blocks.map(b => {
+      if (!Array.isArray(b.notes)) b.notes = stringToNotes(b.note);
       const d = b.steps.filter(s => s.done).length, pct = b.steps.length ? Math.round(d / b.steps.length * 100) : 0;
       const complete = b.steps.length > 0 && d === b.steps.length;
       return `<section class="block ${b.open ? 'open' : ''} ${complete ? 'complete' : ''}" data-b="${b.id}">
@@ -92,7 +93,7 @@ function renderMain() {
           <button class="x" data-act="delblock" title="Borrar bloque">✕</button>
         </div>
         <div class="bar"><i style="width:${pct}%"></i></div>
-        ${(b.open || b.noteOpen || b.noteEdit) ? `<div class="body">
+        ${b.open ? `<div class="body">
           ${b.open ? `${b.steps.map(s => `<div class="step ${s.done ? 'done' : ''}" data-s="${s.id}">
             <span class="grip" draggable="true" title="Arrastrar paso">⋮⋮</span><input type="checkbox" ${s.done ? 'checked' : ''}>
             <div class="step-main">
@@ -306,7 +307,7 @@ const TPL = {
 function addTemplate(n) {
   const p = plan(); if (!p || !TPL[n]) return;
   Object.entries(TPL[n]).forEach(([title, steps], i) => p.blocks.push({
-    id: uid(), title, open: i === 0, noteOpen: false, noteEdit: false, note: '',
+    id: uid(), title, open: i === 0, noteOpen: false, noteEdit: false, note: '', notes: [],
     steps: steps.map(text => ({ id: uid(), text, done: false, noteOpen: false, note: '' }))
   }));
   save(); render();
@@ -413,7 +414,7 @@ const norm = p => ({ id: uid(), title: String(p.title || 'Importada'), blocks: (
 function parseMd(txt) {
   const plans = []; let p = null, b = null, curStep = null, m;
   const cur = () => { if (!p) { p = { id: uid(), title: 'Importada', blocks: [] }; plans.push(p); } return p; };
-  const newBlock = title => { b = { id: uid(), title, open: false, note: '', noteOpen: false, noteEdit: false, steps: [] }; cur().blocks.push(b); curStep = null; };
+  const newBlock = title => { b = { id: uid(), title, open: false, note: '', notes: [], noteOpen: false, noteEdit: false, steps: [] }; cur().blocks.push(b); curStep = null; };
   for (const raw of txt.split(/\r?\n/)) {
     const l = raw.trim();
     if ((m = l.match(/^#\s+(.+)/))) { p = { id: uid(), title: m[1], blocks: [] }; plans.push(p); b = null; curStep = null; }
@@ -490,17 +491,36 @@ document.addEventListener('click', e => {
   else if (act === 'io-dl') dlIO();
   else if (act === 'io-do') doImport();
   else if (act === 'io-pick') document.getElementById('iofile').click();
-  else if (act === 'toggle') { const b = findBlock(bid); b.open = !b.open; save(); focusSel = b.open ? `[data-b="${bid}"] .addstep` : null; render(); }
+  else if (act === 'toggle') {
+    const b = findBlock(bid);
+    b.open = !b.open;
+    save();
+    focusSel = b.open
+      ? (b.noteEdit ? `[data-b="${bid}"] .segtext, [data-b="${bid}"] .segcode` : `[data-b="${bid}"] .addstep`)
+      : null;
+    render();
+  }
   else if (act === 'delblock') { const p = plan(); p.blocks = p.blocks.filter(b => b.id !== bid); save(); render(); }
   else if (act === 'delstep') { const b = findBlock(bid); b.steps = b.steps.filter(s => s.id !== t.closest('.step').dataset.s); save(); focusSel = `[data-b="${bid}"] .addstep`; render(); }
   else if (act === 'pending') { pending = true; search = ''; const si = document.getElementById('search'); if (si) si.value = ''; render(); }
   else if (act === 'clear-search') { search = ''; const si = document.getElementById('search'); if (si) si.value = ''; render(); }
   else if (act === 'note-toggle') {
-    const b = findBlock(bid); b.noteOpen = !b.noteOpen;
-    if (b.noteOpen && !b.note) { b.noteEdit = true; focusSel = `[data-b="${b.id}"] .segtext[data-i="0"]`; }
+    const b = findBlock(bid);
+    if (!Array.isArray(b.notes)) b.notes = stringToNotes(b.note);
+    b.open = true;
+    b.noteOpen = !b.noteOpen;
+    b.noteEdit = b.noteOpen;
+    if (b.noteOpen && !b.note && !b.notes.length) b.notes.push({ t: 'text', lang: '', text: '' });
+    if (b.noteOpen && !b.note) focusSel = `[data-b="${b.id}"] .segtext[data-i="0"]`;
     save(); render();
   }
-  else if (act === 'note-edit') { const b = findBlock(bid); b.noteOpen = true; b.noteEdit = true; save(); focusSel = `[data-b="${b.id}"] .segtext[data-i="0"], [data-b="${b.id}"] .segcode[data-i="0"]`; render(); }
+  else if (act === 'note-edit') {
+    const b = findBlock(bid);
+    if (!Array.isArray(b.notes)) b.notes = stringToNotes(b.note);
+    b.open = true; b.noteOpen = true; b.noteEdit = true;
+    if (!b.note && !b.notes.length) b.notes.push({ t: 'text', lang: '', text: '' });
+    save(); focusSel = `[data-b="${b.id}"] .segtext[data-i="0"], [data-b="${b.id}"] .segcode[data-i="0"]`; render();
+  }
   else if (act === 'note-done') { const b = findBlock(bid); b.noteEdit = false; save(); render(); }
   else if (act === 'note-add-text') {
     const b = findBlock(bid), i = b.notes.push({ t: 'text', lang: '', text: '' }) - 1;
@@ -551,6 +571,18 @@ document.addEventListener('change', e => {
 
 document.addEventListener('keydown', e => {
   const t = e.target;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+    e.preventDefault();
+    const current = plan();
+    const blockEl = t.closest?.('[data-b]');
+    const b = blockEl ? findBlock(blockEl.dataset.b) : current?.blocks.find(x => x.open) || current?.blocks[0];
+    if (!b) return;
+    if (!Array.isArray(b.notes)) b.notes = stringToNotes(b.note);
+    const i = b.notes.push({ t: 'text', lang: '', text: '' }) - 1;
+    b.open = true; b.noteOpen = true; b.noteEdit = true;
+    save(); focusSel = `[data-b="${b.id}"] .segtext[data-i="${i}"]`; render();
+    return;
+  }
   if (t.tagName === 'TEXTAREA') {
     if (e.key === 'Escape') { t.blur(); return; }
     if (t.classList.contains('segtext') && e.key === 'Enter' && !e.shiftKey) {
@@ -581,7 +613,7 @@ document.addEventListener('keydown', e => {
     focusSel = `[data-b="${bid}"] .addstep`; render();
   } else if (t.id === 'newblock' && e.key === 'Enter') {
     const v = t.value.trim(); if (!v) return;
-    const b = { id: uid(), title: v, open: true, note: '', noteOpen: false, noteEdit: false, steps: [] };
+    const b = { id: uid(), title: v, open: true, note: '', notes: [], noteOpen: false, noteEdit: false, steps: [] };
     plan().blocks.push(b); save(); focusSel = `[data-b="${b.id}"] .addstep`; render();
   } else if ((t.id === 'ptitle' || t.classList.contains('btitle')) && e.key === 'Enter') {
     t.blur();
