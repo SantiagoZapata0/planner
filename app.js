@@ -94,7 +94,7 @@ function renderMain() {
         </div>
         <div class="bar"><i style="width:${pct}%"></i></div>
         ${b.open ? `<div class="body">
-          ${b.open ? `${b.steps.map(s => `<div class="step ${s.done ? 'done' : ''}" data-s="${s.id}">
+          ${b.steps.map(s => `<div class="step ${s.done ? 'done' : ''}" data-s="${s.id}">
             <span class="grip" draggable="true" title="Arrastrar paso">⋮⋮</span><input type="checkbox" ${s.done ? 'checked' : ''}>
             <div class="step-main">
               <input class="stext" value="${esc(s.text)}" spellcheck="false">
@@ -104,7 +104,6 @@ function renderMain() {
             </div>
             <button class="det" data-act="stepnote" data-s="${s.id}" title="${s.noteOpen ? 'Ocultar detalle' : 'Añadir detalle'}">${s.noteOpen ? '▾' : (s.note ? '▸' : '＋')}</button>
             <button class="x" data-act="delstep" title="Borrar paso">✕</button></div>`).join('')}
-          <input class="addstep" placeholder="Añadir paso… (Enter)" spellcheck="false">` : ''}
           ${(b.noteOpen || b.noteEdit) ? `<div class="note">
             ${b.noteEdit
               ? `<div class="noteedit">
@@ -118,7 +117,7 @@ function renderMain() {
                         <textarea class="segcode" data-i="${i}" placeholder="Pegá o escribí tu código acá… (Ctrl+Enter guarda)" spellcheck="false">${esc(seg.text)}</textarea>
                       </div>`
                     : `<div class="nseg nseg-text">
-                        <textarea class="segtext" data-i="${i}" placeholder="Texto libre… (Enter guarda · Shift+Enter nueva línea)">${esc(seg.text)}</textarea>
+                        <textarea class="segtext" data-i="${i}" placeholder="Texto libre… (Enter nueva nota · Shift+Enter nueva línea · Esc salir)">${esc(seg.text)}</textarea>
                         <button class="nseg-x" data-act="note-del-seg" data-i="${i}" title="Quitar texto">✕</button>
                       </div>`).join('')}
                   <div class="note-actions">
@@ -129,8 +128,9 @@ function renderMain() {
                 </div>`
               : b.note
                 ? `<div class="noterender" data-act="note-edit" title="Editar nota">${renderNote(b.notes, b.note)}</div>`
-                : `<button class="note-add" data-act="note-edit">＋ Añadir nota</button>`}
+                : `<button class="note-add" data-act="note-edit">＋ Añadir nota (Ctrl + M)</button>`}
           </div>` : ''}
+          <input class="addstep" placeholder="Añadir paso… (Enter)" spellcheck="false">
         </div>` : ''}
       </section>`;
     }).join('')}
@@ -584,10 +584,29 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (t.tagName === 'TEXTAREA') {
-    if (e.key === 'Escape') { t.blur(); return; }
+    if (e.key === 'Escape') {
+      if (t.classList.contains('segtext') || t.classList.contains('segcode')) {
+        e.preventDefault();
+        const { b } = locate(t);
+        if (b) {
+          b.note = notesToString(b.notes);
+          b.notes = b.notes.filter(seg => seg.text.trim() || (seg.t === 'code' && seg.lang.trim()));
+          b.note = notesToString(b.notes);
+          b.noteEdit = false;
+          if (!b.notes.length && !b.note) b.noteOpen = false;
+          save(); render();
+        }
+      } else t.blur();
+      return;
+    }
     if (t.classList.contains('segtext') && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const { b } = locate(t); if (b) { b.noteEdit = false; save(); render(); }
+      const { b } = locate(t);
+      if (b) {
+        const i = b.notes.push({ t: 'text', lang: '', text: '' }) - 1;
+        b.note = notesToString(b.notes); save();
+        focusSel = `[data-b="${b.id}"] .segtext[data-i="${i}"]`; render();
+      }
     } else if (t.classList.contains('segcode') && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       const { b } = locate(t); if (b) { b.noteEdit = false; save(); render(); }
