@@ -32,11 +32,21 @@
       <div><kbd>Alt</kbd>+<kbd>B</kbd> nuevo bloque</div>
       <div><kbd>Ctrl</kbd>+<kbd>M</kbd> nuevo texto libre</div>
       <div><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> cambiar planificación</div>
-      <div><kbd>Enter</kbd> guarda nota · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> en código</div>
-      <div><kbd>Esc</kbd> salir del campo</div>
+      <div><kbd>Enter</kbd> nueva nota · <kbd>Shift</kbd>+<kbd>Enter</kbd> salto de línea</div>
+      <div><kbd>Esc</kbd> cerrar edición de nota</div>
     </div>
   </aside>
-  <main><div class="wrap" id="main"></div>
+  <main>
+    <div id="backup-reminder" class="backup-reminder" role="status" hidden>
+      <span>Hace un tiempo que no guardás un respaldo de tus planes.</span>
+      <button data-act="io-open">Hacer respaldo</button>
+      <button class="reminder-later" data-act="backup-dismiss">Recordarme después</button>
+    </div>
+    <div id="storage-warning" class="storage-warning" role="alert" hidden>
+      No se pudieron guardar los cambios en este navegador. Exportá un respaldo para conservarlos.
+      <button data-act="io-open">Exportar ahora</button>
+    </div>
+    <div class="wrap" id="main"></div>
     <p class="disclaimer">
       Tus datos se guardan solo en este navegador.
       <button data-act="io-open">Guardá un respaldo</button>

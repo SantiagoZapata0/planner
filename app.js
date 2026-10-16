@@ -1,4 +1,7 @@
 const KEY = 'planner.v1';
+const BACKUP_KEY = 'planner.backup.v1';
+const BACKUP_INTERVAL = 30 * 24 * 60 * 60 * 1000;
+const REMINDER_SNOOZE = 7 * 24 * 60 * 60 * 1000;
 const uid = () => Math.random().toString(36).slice(2, 9);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -41,7 +44,38 @@ function load() {
 let state = load();
 let focusSel = null, armedEl = null, armedTimer = null;
 let search = '', pending = false, flashSel = null;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+const setStorageWarning = show => {
+  const el = document.getElementById('storage-warning');
+  if (el) el.hidden = !show;
+};
+const save = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); setStorageWarning(false); return true; }
+  catch (e) { setStorageWarning(true); return false; }
+};
+function readBackupMeta() {
+  try { return JSON.parse(localStorage.getItem(BACKUP_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+let backupMeta = readBackupMeta();
+function updateBackupReminder() {
+  const el = document.getElementById('backup-reminder');
+  if (!el) return;
+  const now = Date.now();
+  const snoozed = Number(backupMeta.remindAfter) > now;
+  const backedUpRecently = Number(backupMeta.lastExportAt) && now - Number(backupMeta.lastExportAt) < BACKUP_INTERVAL;
+  el.hidden = snoozed || backedUpRecently;
+}
+function markBackupDone() {
+  const now = Date.now();
+  backupMeta = { lastExportAt: now, remindAfter: now + BACKUP_INTERVAL };
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(backupMeta)); } catch (e) {}
+  updateBackupReminder();
+}
+function snoozeBackupReminder() {
+  backupMeta.remindAfter = Date.now() + REMINDER_SNOOZE;
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(backupMeta)); } catch (e) {}
+  updateBackupReminder();
+}
 const plan = () => state.plans.find(p => p.id === state.current) || null;
 const findBlock = id => plan().blocks.find(b => b.id === id);
 /* Ubica plan / bloque / paso de cualquier parte del DOM (sirve en vista plan, pendientes y búsqueda) */
@@ -390,18 +424,28 @@ function fillIO() {
 }
 async function copyIO() {
   const ta = document.getElementById('iotext');
-  try { await navigator.clipboard.writeText(ta.value); ioMsg('Copiado ✓'); }
-  catch (e) { ta.select(); try { document.execCommand('copy'); ioMsg('Copiado ✓'); } catch (_) { ioMsg('Seleccioná el texto y copialo con Ctrl+C'); } }
+  try { await navigator.clipboard.writeText(ta.value); ioMsg('Copiado ✓'); markBackupDone(); }
+  catch (e) {
+    ta.select();
+    try {
+      if (!document.execCommand('copy')) throw new Error('copy failed');
+      ioMsg('Copiado ✓'); markBackupDone();
+    } catch (_) { ioMsg('Seleccioná el texto y copialo con Ctrl+C'); }
+  }
 }
 function dlIO() {
   const slug = (plan()?.title || 'plan').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'plan';
+  let url;
   try {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([ioText()], { type: 'text/plain' }));
+    url = URL.createObjectURL(new Blob([ioText()], { type: 'text/plain' }));
+    a.href = url;
     a.download = dlg.mode === 'json' ? 'planner.json' : slug + '.md';
     document.body.appendChild(a); a.click(); a.remove();
     ioMsg('Descarga iniciada. Si no aparece, usá Copiar.');
+    markBackupDone();
   } catch (e) { ioMsg('No se pudo descargar; usá Copiar.'); }
+  finally { if (url) setTimeout(() => URL.revokeObjectURL(url), 1000); }
 }
 const normNotes = b => Array.isArray(b.notes)
   ? b.notes.map(s => ({ t: s.t === 'code' ? 'code' : 'text', lang: String(s.lang || ''), text: String(s.text || '') }))
@@ -485,6 +529,7 @@ document.addEventListener('click', e => {
   }
   else if (act === 'tpl') addTemplate(t.dataset.n);
   else if (act === 'io-open') openIO();
+  else if (act === 'backup-dismiss') snoozeBackupReminder();
   else if (act === 'io-close') closeIO();
   else if (act === 'io-mode') { dlg.mode = t.dataset.m; fillIO(); }
   else if (act === 'io-copy') copyIO();
@@ -652,3 +697,4 @@ document.addEventListener('keydown', e => {
 });
 
 render();
+updateBackupReminder();
