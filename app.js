@@ -131,7 +131,7 @@ function renderMain() {
           ${b.steps.map(s => `<div class="step ${s.done ? 'done' : ''}" data-s="${s.id}">
             <span class="grip" draggable="true" title="Arrastrar paso">⋮⋮</span><input type="checkbox" ${s.done ? 'checked' : ''}>
             <div class="step-main">
-              <input class="stext" value="${esc(s.text)}" spellcheck="false">
+              <textarea class="stext" rows="1" spellcheck="false">${esc(s.text)}</textarea>
               ${s.noteOpen
                 ? `<textarea class="snote" placeholder="Detalle del paso… (texto libre)">${esc(s.note)}</textarea>`
                 : (s.note ? `<div class="snote-preview" data-act="stepnote" data-s="${s.id}">${esc(s.note)}</div>` : '')}
@@ -298,6 +298,7 @@ function renderPending(m) {
 
 function render() {
   renderSide(); renderMain();
+  document.querySelectorAll('.stext').forEach(resizeStepText);
   if (focusSel) { const e = document.querySelector(focusSel); if (e) { e.focus(); if (e.select && e.id === 'ptitle') e.select(); } focusSel = null; }
   if (flashSel) {
     const e = document.querySelector(flashSel);
@@ -305,6 +306,11 @@ function render() {
     flashSel = null;
   }
 }
+function resizeStepText(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+window.addEventListener('resize', () => document.querySelectorAll('.stext').forEach(resizeStepText));
 function goto(pid, bid, sid) {
   pending = false; search = '';
   const si = document.getElementById('search'); if (si) si.value = '';
@@ -597,7 +603,7 @@ document.addEventListener('input', e => {
   if (t.id === 'search') { search = t.value; if (pending) pending = false; renderSide(); renderMain(); return; }
   if (t.id === 'ptitle') { plan().title = t.value; save(); renderSide(); }
   else if (t.classList.contains('btitle')) { const { b } = locate(t); if (b) { b.title = t.value; save(); } }
-  else if (t.classList.contains('stext')) { const { s } = locate(t); if (s) { s.text = t.value; save(); } }
+  else if (t.classList.contains('stext')) { const { s } = locate(t); if (s) { s.text = t.value; save(); resizeStepText(t); } }
   else if (t.classList.contains('segtext') || t.classList.contains('segcode')) {
     const { b } = locate(t);
     if (b && b.notes[+t.dataset.i]) { b.notes[+t.dataset.i].text = t.value; b.note = notesToString(b.notes); save(); }
@@ -629,6 +635,18 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (t.tagName === 'TEXTAREA') {
+    if (t.classList.contains('stext')) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        t.closest('.step').parentElement.querySelector('.addstep').focus();
+      } else if (e.key === 'Backspace' && !t.value) {
+        e.preventDefault();
+        const sec = t.closest('[data-b]'), bid = sec.dataset.b;
+        const b = findBlock(bid); b.steps = b.steps.filter(s => s.id !== t.closest('.step').dataset.s);
+        save(); focusSel = `[data-b="${bid}"] .addstep`; render();
+      }
+      return;
+    }
     if (e.key === 'Escape') {
       if (t.classList.contains('segtext') || t.classList.contains('segcode')) {
         e.preventDefault();
