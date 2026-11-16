@@ -5,26 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Planner</title>
 <meta name="description" content="Planner: planificá tus proyectos en bloques y pasos, rápido y con el teclado.">
-<meta name="theme-color" content="#1c1c1a">
+<meta name="theme-color" content="#141413">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app">
   <aside>
-    <div class="brand" data-act="home" title="Volver a la planificación">Planner</div>
+    <button class="brand" data-act="home" title="Volver a la planificación"><span class="brand-mark" aria-hidden="true">✓</span>Planner</button>
     <button class="add-plan" data-act="newplan">+ Nueva planificación</button>
-    <input id="search" class="search" placeholder="Buscar en todo…" spellcheck="false" autocomplete="off">
-    <button class="pending-btn" data-act="pending">✓ Qué me queda pendiente</button>
-    <div id="plans"></div>
+    <input id="search" class="search" type="search" aria-label="Buscar en todas las planificaciones" placeholder="Buscar en tus proyectos…" spellcheck="false" autocomplete="off">
+    <button class="pending-btn" data-act="pending"><span aria-hidden="true">◷</span> Pendientes <span id="pending-count" class="nav-count"></span></button>
+    <div class="plans-label">Mis proyectos <span id="plans-count"></span></div>
+    <nav id="plans" aria-label="Planificaciones"></nav>
     <button class="io-btn" data-act="io-open">⇅ Exportar / Importar</button>
-    <div class="hints">
+    <details class="hints"><summary>Atajos de teclado <kbd>⌥</kbd></summary><div class="hints-body">
       <div><kbd>Enter</kbd> agrega paso / bloque</div>
       <div><kbd>↑</kbd> <kbd>↓</kbd> navegar pasos</div>
       <div><kbd>Alt</kbd>+<kbd>F</kbd> buscar</div>
@@ -34,7 +35,7 @@
       <div><kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> cambiar planificación</div>
       <div><kbd>Enter</kbd> nueva nota · <kbd>Shift</kbd>+<kbd>Enter</kbd> salto de línea</div>
       <div><kbd>Esc</kbd> cerrar edición de nota</div>
-    </div>
+    </div></details>
   </aside>
   <main>
     <div id="backup-reminder" class="backup-reminder" role="status" hidden>
@@ -48,17 +49,16 @@
     </div>
     <div class="wrap" id="main"></div>
     <p class="disclaimer">
-      Tus datos se guardan solo en este navegador.
+      Guardado local en este navegador.
       <button data-act="io-open">Guardá un respaldo</button>
-      por si se limpia.
     </p>
   </main>
   <div id="io" hidden>
     <div class="bk" data-act="io-close"></div>
-    <div class="modal">
-      <h3>Exportar / Importar</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="io-title">
+      <h3 id="io-title">Exportar / Importar</h3>
       <div class="seg"><button data-act="io-mode" data-m="json">JSON (todo)</button><button data-act="io-mode" data-m="md">Markdown (actual)</button><button data-act="io-mode" data-m="import">Importar</button></div>
-      <textarea id="iotext" spellcheck="false"></textarea>
+      <textarea aria-label="Contenido del respaldo" id="iotext" spellcheck="false"></textarea>
       <div class="act"><span id="iomsg"></span>
         <input type="file" id="iofile" accept=".json,.md,.txt" hidden>
         <button data-act="io-pick" id="iopick">Elegir archivo</button>

@@ -94,9 +94,11 @@ function renderSide() {
   const planView = !pending && !search.trim();
   el.innerHTML = state.plans.map(p => `
     <div class="plan ${planView && p.id === state.current ? 'active' : ''}" data-act="select" data-p="${p.id}">
-      <span>${esc(p.title || 'Sin título')}</span>
+      <button class="plan-link" data-act="select" data-p="${p.id}" ${planView && p.id === state.current ? 'aria-current="page"' : ''}><span class="plan-icon" aria-hidden="true">▤</span><span>${esc(p.title || 'Sin título')}</span></button>
       <button class="x" data-act="delplan" data-p="${p.id}" title="Borrar">✕</button>
     </div>`).join('');
+  document.getElementById('plans-count').textContent = state.plans.length;
+  document.getElementById('pending-count').textContent = state.plans.reduce((n, p) => n + p.blocks.reduce((a, b) => a + b.steps.filter(s => !s.done).length, 0), 0);
   const pb = document.querySelector('[data-act="pending"]');
   if (pb) pb.classList.toggle('on', pending);
 }
@@ -111,7 +113,8 @@ function renderMain() {
   }
   const all = p.blocks.flatMap(b => b.steps), done = all.filter(s => s.done).length;
   m.innerHTML = `
-    <div class="top"><input id="ptitle" value="${esc(p.title)}" placeholder="Título de la planificación" spellcheck="false"><span class="count">${done}/${all.length} pasos</span></div>
+    <div class="top"><input aria-label="Título de la planificación" id="ptitle" value="${esc(p.title)}" placeholder="Título de la planificación" spellcheck="false"></div>
+    <div class="plan-overview"><span>${p.blocks.length} bloque${p.blocks.length === 1 ? '' : 's'}</span><span class="overview-divider" aria-hidden="true"></span><span>${done} de ${all.length} pasos completados</span><progress value="${done}" max="${all.length || 1}" aria-label="Progreso de la planificación"></progress></div>
     ${p.blocks.map(b => {
       if (!Array.isArray(b.notes)) b.notes = stringToNotes(b.note);
       const d = b.steps.filter(s => s.done).length, pct = b.steps.length ? Math.round(d / b.steps.length * 100) : 0;
@@ -119,19 +122,19 @@ function renderMain() {
       return `<section class="block ${b.open ? 'open' : ''} ${complete ? 'complete' : ''}" data-b="${b.id}">
         <div class="block-h" data-act="toggle">
           <span class="grip" draggable="true" title="Arrastrar bloque">⋮⋮</span>
-          <span class="chev">▶</span>
-          <input class="btitle" value="${esc(b.title)}" placeholder="Nombre del bloque" spellcheck="false">
+          <button class="chev" data-act="toggle" aria-expanded="${!!b.open}" aria-label="${b.open ? 'Contraer' : 'Expandir'} bloque">▶</button>
+          <input aria-label="Nombre del bloque" class="btitle" value="${esc(b.title)}" placeholder="Nombre del bloque" spellcheck="false">
           ${complete ? '<span class="donecheck" title="Bloque completado">✓</span>' : ''}
-          <span class="prog">${d}/${b.steps.length}</span>
+          <span class="prog">${b.steps.length ? `${d}/${b.steps.length}` : 'Sin pasos'}</span>
           <button class="notebtn ${b.note ? 'has' : ''}" data-act="note-toggle" title="${b.note ? 'Editar nota del bloque' : 'Añadir nota libre'}">✎</button>
           <button class="x" data-act="delblock" title="Borrar bloque">✕</button>
         </div>
         <div class="bar"><i style="width:${pct}%"></i></div>
         ${b.open ? `<div class="body">
           ${b.steps.map(s => `<div class="step ${s.done ? 'done' : ''}" data-s="${s.id}">
-            <span class="grip" draggable="true" title="Arrastrar paso">⋮⋮</span><input type="checkbox" ${s.done ? 'checked' : ''}>
+            <span class="grip" draggable="true" title="Arrastrar paso">⋮⋮</span><input type="checkbox" aria-label="${esc('Completar paso: ' + s.text)}" ${s.done ? 'checked' : ''}>
             <div class="step-main">
-              <textarea class="stext" rows="1" spellcheck="false">${esc(s.text)}</textarea>
+              <textarea aria-label="Texto del paso" class="stext" rows="1" spellcheck="false">${esc(s.text)}</textarea>
               ${s.noteOpen
                 ? `<textarea class="snote" placeholder="Detalle del paso… (texto libre)">${esc(s.note)}</textarea>`
                 : (s.note ? `<div class="snote-preview" data-act="stepnote" data-s="${s.id}">${esc(s.note)}</div>` : '')}
@@ -164,11 +167,11 @@ function renderMain() {
                 ? `<div class="noterender" data-act="note-edit" title="Editar nota">${renderNote(b.notes, b.note)}</div>`
                 : `<button class="note-add" data-act="note-edit">＋ Añadir nota (Ctrl + M)</button>`}
           </div>` : ''}
-          <input class="addstep" placeholder="Añadir paso… (Enter)" spellcheck="false">
+          <input class="addstep" aria-label="Añadir paso" placeholder="+ Añadir paso · Enter" spellcheck="false">
         </div>` : ''}
       </section>`;
     }).join('')}
-    <div class="newblock"><div class="tpls"><span>Plantillas</span>${Object.keys(TPL).map(n => `<button data-act="tpl" data-n="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div><input id="newblock" placeholder="+ Nuevo bloque (Enter)  ·  ej: Arquitectura, Modelos…" spellcheck="false"></div>`;
+    <div class="newblock"><input id="newblock" aria-label="Añadir bloque" placeholder="+ Nuevo bloque · escribí un nombre y presioná Enter" spellcheck="false"><div class="tpls"><span>Plantillas</span>${Object.keys(TPL).map(n => `<button data-act="tpl" data-n="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div></div>`;
 }
 
 /* ---------- Notas (texto libre + bloques de código) ---------- */
@@ -520,7 +523,7 @@ function disarm() {
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t) { disarm(); return; }
-  if (t.dataset.act === 'toggle' && e.target.closest('input,button,.grip')) return;
+  if (t.classList.contains('block-h') && e.target.closest('input,button,.grip')) return;
   const act = t.dataset.act, bid = t.closest('[data-b]')?.dataset.b;
   if (['delplan', 'delblock'].includes(act) && armedEl !== t) { e.stopPropagation(); arm(t); return; }
   disarm();
